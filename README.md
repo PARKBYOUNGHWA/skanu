@@ -532,7 +532,7 @@ az acr build --registry x0006319acr --image x0006319acr.azurecr.io/gateway:lates
 
 ## Autoscale (HPA)
 
--------------------------신매니저님 작성해주세요!!
+-------------------------신매니저님 이후 작성해주세요!!
 
 ## Circuit Breaker
 
