@@ -477,7 +477,7 @@ viewer 인 ordertraces 서비스를 별도로 구현하여 아래와 같이 view
 
 # 운영
   
-## Deploy/ Pipeline
+## Deploy / Pipeline
 
 - git에서 소스 가져오기
 
@@ -522,7 +522,9 @@ az acr build --registry x0006319acr --image x0006319acr.azurecr.io/gateway:lates
 ```
 
 - deploy 완료
+
 ![image](https://user-images.githubusercontent.com/89397401/130646019-c0a9e001-3433-44da-8acd-9a1637a4b2e9.png)
+
 
 ## Config Map
 
