@@ -1,4 +1,4 @@
-﻿# sktkanumodel
+﻿# SKANU
  
  # 서비스 시나리오
 
@@ -472,4 +472,70 @@ viewer 인 ordertraces 서비스를 별도로 구현하여 아래와 같이 view
 ### 주문 취소 수행 후, ordertraces
 
 ![image](https://user-images.githubusercontent.com/86760678/130352458-f2b7ad3e-4b00-4fb8-a06e-75e985475c53.png)
+
+
+
+# 운영
+  
+## Deploy/ Pipeline
+
+- git에서 소스 가져오기
+
+```
+git clone https://github.com/3-5Team/skanu.git
+```
+
+- Build 및 ACR 에 Docker Build/Push 하기
+ 
+```bash
+cd ..
+cd order
+mvn package -B
+az acr build --registry x0006319acr --image x0006319acr.azurecr.io/order:latest .
+
+cd ..
+cd payment
+mvn package -B
+az acr build --registry x0006319acr --image x0006319acr.azurecr.io/payment:latest .
+
+cd ..
+cd delivery
+mvn package -B
+az acr build --registry x0006319acr --image x0006319acr.azurecr.io/delivery:latest .
+
+cd ..
+cd ordertrace
+mvn package -B
+az acr build --registry x0006319acr --image x0006319acr.azurecr.io/ordertrace:latest .
+
+cd ..
+cd gateway
+mvn package -B
+az acr build --registry x0006319acr --image x0006319acr.azurecr.io/gateway:latest .
+
+```
+
+- Kubernetes Deployment, Service 생성
+
+```sh
+
+```
+
+- deploy 완료
+![image](https://user-images.githubusercontent.com/89397401/130646019-c0a9e001-3433-44da-8acd-9a1637a4b2e9.png)
+
+## Config Map
+
+## Persistence Volume
+
+## Autoscale (HPA)
+
+-------------------------신매니저님 작성해주세요!!
+
+## Circuit Breaker
+
+## Zero-Downtime deploy (Readiness Probe)
+
+## Self-healing (Liveness Probe)
+
 
