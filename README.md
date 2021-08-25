@@ -600,7 +600,10 @@ spec:
 ![image](https://user-images.githubusercontent.com/89397401/130646019-c0a9e001-3433-44da-8acd-9a1637a4b2e9.png)
 
 
-## Config Map
+## ConfigMap
+
+애플리케이션 코드와 별도로 구성 데이터를 설정하고자 ConfigMap 설정한다. 변경 가능성이 있는 설정에 대해 ConfigMap 활용하여 관리한다.(개발-운영간 URL, DATABASE_HOME등)
+
 
 ## Persistence Volume
 
