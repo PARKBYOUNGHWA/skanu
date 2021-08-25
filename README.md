@@ -552,7 +552,7 @@ kubectl apply -f deployment.yml
 kubectl apply -f service.yaml
 ```
 
-- /order/kubernetes/deployment.yml 파일 
+-- /order/kubernetes/deployment.yml 파일 
 ```yml
 apiVersion: apps/v1
 kind: Deployment
@@ -577,7 +577,7 @@ spec:
             - containerPort: 8080
 ```
 
-- /order/kubernetes/service.yaml 파일 
+-- /order/kubernetes/service.yaml 파일 
 ```yml
 apiVersion: v1
 kind: Service
@@ -593,7 +593,7 @@ spec:
     app: order
 ```
 
-- 전체 deploy 완료 현황
+-- 전체 deploy 완료 현황
 
 ![image](https://user-images.githubusercontent.com/89397401/130646019-c0a9e001-3433-44da-8acd-9a1637a4b2e9.png)
 
