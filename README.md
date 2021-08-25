@@ -743,20 +743,12 @@ hystrix:
     }
 ```
 
-- siege 툴 사용법:
-```
- siege가 생성되어 있지 않으면:
- kubectl run siege --image=apexacme/siege-nginx -n phone82
- siege 들어가기:
- kubectl exec -it pod/siege-5c7c46b788-4rn4r -c siege -- /bin/bash
- siege 종료:
- Ctrl + C -> exit
- ```
-
 - 부하테스터 siege 툴을 통한 서킷 브레이커 동작 확인:
 - 동시사용자 100명
 - 60초 동안 실시
 ```
+kubectl exec -it siege -c siege -- /bin/bash
+
 siege -c100 -t60S -r10 -v --content-type "application/json" 'http://order:8080/orders POST {"productId": 1, "qty":3, "paymentTyp"= "cash", "cost": 1000, "productName": "Coffee"}'
 ```
 
