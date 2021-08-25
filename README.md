@@ -659,11 +659,11 @@ logging:
 
 ## Autoscale (HPA:HorizontalPodAutoscaler)
 
-- 사용자 요청이 증가할 경우 안정적으로 운영 할 수 있도록 HPA를 설치한다.
+- 특정 수치 이상으로 사용자 요청이 증가할 경우 안정적으로 운영 할 수 있도록 HPA를 설치한다.
 
 order 서비스에 resource 사용량을 정의한다.
-<code>order/kubernetes/deployment.yml</code>
 
+order/kubernetes/deployment.yml
 ```yml
   resources:
     requests:
