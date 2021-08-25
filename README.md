@@ -530,6 +530,61 @@ az acr build --registry x0006319acr --image x0006319acr.azurecr.io/gateway:lates
 
 ## Persistence Volume
 
+- 비정형 데이터를 관리하기 위해 PVC 생성 파일
+
+<code>pvc.yml</code>
+- AccessModes: **ReadWriteMany**
+- storeageClass: **azurefile**
+```yml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: order-disk
+spec:
+  accessModes:
+  - ReadWriteMany
+  storageClassName: azurefile
+  resources:
+    requests:
+      storage: 1Gi
+```
+deploymeny.yml
+```yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order
+  labels:
+    app: order
+spec:
+  replicas: 1
+  -- 생략 --
+  template:
+  -- 생략 --
+    spec:
+      containers:
+        - name: order
+        -- 생략 --
+          volumeMounts:
+            - name: volume
+              mountPath: "/mnt/azure"
+      volumes:
+      - name: volume
+        persistentVolumeClaim:
+          claimName: order-disk
+```
+<code>application.yml</code>
+```yml
+logging:
+  level:
+    root: info
+  file: /mnt/azure/logs/order.log
+```
+- 로그 확인
+
+![PVC-LOGS](https://user-images.githubusercontent.com/89397401/130727058-c8b4e2d1-b07e-4b4f-9fdb-9acfe25f5943.png)
+
+
 ## Autoscale (HPA)
 
 -------------------------신매니저님 이후 작성해주세요!!
