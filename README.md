@@ -726,6 +726,23 @@ hystrix:
       execution.isolation.thread.timeoutInMilliseconds: 610
 ```
 
+- 피호출 서비스(Payment) 의 임의 부하 처리 - 400 밀리에서 증감 220 밀리 정도 왔다갔다 하게
+```
+# Payment.java (Entity)
+
+    @PrePersist
+    public void onPrePersist(){  //결제이력을 저장한 후 적당한 시간 끌기
+
+        ...
+        
+        try {
+            Thread.currentThread().sleep((long) (400 + Math.random() * 220));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+```
+
 - siege 툴 사용법:
 ```
  siege가 생성되어 있지 않으면:
