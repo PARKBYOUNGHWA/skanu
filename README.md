@@ -515,9 +515,9 @@ az acr build --registry x0006319acr --image x0006319acr.azurecr.io/gateway:lates
 
 ```
 
-- Azure Potal에 정상 Push 완료
+- ACR에 정상 Push 완료
 
-![image](https://user-images.githubusercontent.com/89397401/130728027-a77343a0-e830-445c-98ac-511f88e06bcf.png)
+![image](https://user-images.githubusercontent.com/89397401/130728262-6870ae32-b1fd-487d-9c38-1314b5fe9a23.png)
 
 - Kubernetes Deployment, Service 생성
 
