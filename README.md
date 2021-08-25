@@ -573,7 +573,7 @@ spec:
             - containerPort: 8080
 ```
 
-- order/kubernetes/service.yaml 파일 
+- /order/kubernetes/service.yaml 파일 
 ```yml
 apiVersion: v1
 kind: Service
@@ -589,7 +589,11 @@ spec:
     app: order
 ```
 
-- deploy 완료
+- Kafka 설치 및 배포 완료
+
+![image](https://user-images.githubusercontent.com/89397401/130728767-545dc1e9-6c3b-4937-b3e7-0a8af179567c.png)
+
+- 전체 deploy 완료 현황
 
 ![image](https://user-images.githubusercontent.com/89397401/130646019-c0a9e001-3433-44da-8acd-9a1637a4b2e9.png)
 
