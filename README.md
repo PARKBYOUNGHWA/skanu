@@ -645,7 +645,7 @@ spec:
         persistentVolumeClaim:
           claimName: order-disk
 ```
-<code>application.yml</code>
+application.yml
 ```yml
 logging:
   level:
