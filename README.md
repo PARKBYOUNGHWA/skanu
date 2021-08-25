@@ -519,6 +519,10 @@ az acr build --registry x0006319acr --image x0006319acr.azurecr.io/gateway:lates
 
 ![image](https://user-images.githubusercontent.com/89397401/130728262-6870ae32-b1fd-487d-9c38-1314b5fe9a23.png)
 
+- Kafka 설치 및 배포 완료
+
+![image](https://user-images.githubusercontent.com/89397401/130728767-545dc1e9-6c3b-4937-b3e7-0a8af179567c.png)
+
 - Kubernetes Deployment, Service 생성
 
 ```sh
@@ -588,10 +592,6 @@ spec:
   selector:
     app: order
 ```
-
-- Kafka 설치 및 배포 완료
-
-![image](https://user-images.githubusercontent.com/89397401/130728767-545dc1e9-6c3b-4937-b3e7-0a8af179567c.png)
 
 - 전체 deploy 완료 현황
 
