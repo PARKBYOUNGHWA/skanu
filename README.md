@@ -752,11 +752,11 @@ kubectl exec -it siege -c siege -- /bin/bash
 siege -c100 -t60S -r10 -v --content-type "application/json" 'http://order:8080/orders POST {"productId": 1, "qty":3, "paymentTyp"= "cash", "cost": 1000, "productName": "Coffee"}'
 ```
 
-- 부하 발생하여 CB가 발동하여 요청 실패처리하였고, 밀린 부하가 pay에서 처리되면서 다시 order를 받기 시작
-이미지 추가 예정
+- 부하 발생하여 CB가 발동하여 요청 실패처리하였고, 밀린 부하가 payment에서 처리되면서 다시 order를 받기 시작
+- 이미지 추가 예정
 
 - CB 잘 적용됨을 확인
-이미지 추가 예정
+- 이미지 추가 예정
 
 
 
