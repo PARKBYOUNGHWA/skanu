@@ -487,7 +487,7 @@ viewer 인 ordertraces 서비스를 별도로 구현하여 아래와 같이 view
 git clone https://github.com/3-5Team/skanu.git
 ```
 
-- Build 및 ACR 에 Docker Build/Push 하기
+- Build 및 Azure Container Resistry(ACR) 에 Push 하기
  
 ```bash
 cd ..
