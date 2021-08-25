@@ -767,7 +767,9 @@ siege -c1 -t60S -v http://order:8080/orders --delay=1S
 ```
 
 - Readiness가 설정되지 않은 yml 파일로 배포 진행
+ 
 ![image](https://user-images.githubusercontent.com/44763296/130768667-b3df9f46-d907-40aa-9304-4b0888a9983b.png)
+
 ```
 kubectl apply -f deployment_without_readiness.yml
 ```
