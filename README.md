@@ -1,4 +1,6 @@
 ﻿# SKANU
+ ![image](https://user-images.githubusercontent.com/89397401/130740460-91135a6b-9676-460e-bac1-6f89d1da562f.png)
+
  
  # 서비스 시나리오
 
