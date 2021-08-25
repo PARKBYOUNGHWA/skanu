@@ -518,7 +518,71 @@ az acr build --registry x0006319acr --image x0006319acr.azurecr.io/gateway:lates
 - Kubernetes Deployment, Service 생성
 
 ```sh
+cd ..
+cd order/kubernetes
+kubectl apply -f deployment.yml
+kubectl apply -f service.yaml
 
+cd ..
+cd payment/kubernetes
+kubectl apply -f deployment.yml
+kubectl apply -f service.yaml
+
+cd ..
+cd delivery/kubernetes
+kubectl apply -f deployment.yml
+kubectl apply -f service.yaml
+
+cd ..
+cd ordertrace/kubernetes
+kubectl apply -f deployment.yml
+kubectl apply -f service.yaml
+
+cd ..
+cd gateway/kubernetes
+kubectl apply -f deployment.yml
+kubectl apply -f service.yaml
+```
+
+- /order/kubernetes/deployment.yml 파일 
+```yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order
+  labels:
+    app: order
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: order
+  template:
+    metadata:
+      labels:
+        app: order
+    spec:
+      containers:
+        - name: order
+          image: x0006319acr.azurecr.io/order:latest
+          ports:
+            - containerPort: 8080
+```
+
+- order/kubernetes/service.yaml 파일 
+```yml
+apiVersion: v1
+kind: Service
+metadata:
+  name: order
+  labels:
+    app: order
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: order
 ```
 
 - deploy 완료
