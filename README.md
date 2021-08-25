@@ -604,7 +604,7 @@ spec:
 
 - 비정형 데이터를 관리하기 위해 PVC 생성 파일
 
-<code>pvc.yml</code>
+pvc.yml
 - AccessModes: **ReadWriteMany**
 - storeageClass: **azurefile**
 ```yml
