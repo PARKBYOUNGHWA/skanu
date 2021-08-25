@@ -657,7 +657,48 @@ logging:
 ![PVC-LOGS](https://user-images.githubusercontent.com/89397401/130727058-c8b4e2d1-b07e-4b4f-9fdb-9acfe25f5943.png)
 
 
-## Autoscale (HPA)
+## Autoscale (HPA:HorizontalPodAutoscaler)
+
+- 사용자 요청이 증가할 경우 안정적으로 운영 할 수 있도록 HPA를 설치한다.
+
+order 서비스에 resource 사용량을 정의한다.
+<code>order/kubernetes/deployment.yml</code>
+
+```yml
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "250m"
+    limits:
+      memory: "500Mi"
+      cpu: "500m"
+```
+
+order 서비스에 대한 replica 를 동적으로 늘려주도록 HPA 를 설정한다. 설정은 CPU 사용량이 15%를 넘어서면 replica를 10개까지 늘려준다.
+
+```sh
+kubectl autoscale deploy vote --min=1 --max=10 --cpu-percent=15
+```
+
+![image](https://user-images.githubusercontent.com/89397401/130735894-d889090c-95c6-4fa7-a1b5-aa1311e11eb9.png)
+
+siege를 활용하여, 부하 생성한다.
+
+```sh
+siege -c200 -t10S -v --content-type "application/json" 'http://order:8080/orders POST { "productId": 1, "qty": 2, "paymentType" : "card", "cost" : 2000, "productName" : "RedTea"}'
+```
+
+- Autoscale을 확인하기 위해 모니터링한다.
+
+```sh
+$ watch kubectl get all
+```
+
+- 결과 확인 : 부하 생성 이후 CPU 15% 이상 사용 시 자동으로 POD가 증가하면서 Autoscale 됨을 확인 할 수 있다.
+
+![image](https://user-images.githubusercontent.com/89397401/130736630-9a4de0c5-82d6-416c-a24a-11253d8412f0.png)
+
+
 
 -------------------------신매니저님 이후 작성해주세요!!
 
