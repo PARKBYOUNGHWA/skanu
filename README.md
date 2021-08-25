@@ -713,6 +713,9 @@ $ watch kubectl get all
 
 - 먼저 무정지 재배포가 100% 되는 것인지 확인하기 위해서 Autoscaler 이나 CB 설정을 제거함
 
+![image](https://user-images.githubusercontent.com/44763296/130768667-b3df9f46-d907-40aa-9304-4b0888a9983b.png)
+
+
 - 생성된 siege Pod 안쪽에서 정상작동 확인
 ```
 kubectl exec -it siege -- /bin/bash
