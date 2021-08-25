@@ -45,6 +45,18 @@
  
  # 구현
  
+ ### 흐름도
+ 
+
+ 
+ - 주문(order) 후 주문취소(cancel order) 시, 흐름도
+![image](https://user-images.githubusercontent.com/86760678/130794931-a22b6b52-044b-4f96-95b0-86acd56014c7.png)
+
+ - 주문(order) 후 결제수행(pay) 시, 흐름도
+![image](https://user-images.githubusercontent.com/86760678/130794970-29d3b38e-ea00-43cc-a4d8-51f5144d3803.png)
+
+ 
+ 
  분석/설계 단계에서 도출된 헥사고날 아키텍처에 따라, 각 BC별로 대변되는 마이크로 서비스들을 스프링부트로 구현하였다. 구현한 각 서비스를 로컬에서 실행하는 방법은 아래와 같다 (각자의 포트넘버는 8081 ~ 8084, 8088 이다)
 
 ```
