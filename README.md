@@ -41,7 +41,7 @@
 ![image](https://user-images.githubusercontent.com/79756040/130614202-d1ddaef6-466f-436f-a4a3-51714383d43a.png)
 
 ## 헥사고날 아키텍처 다이어그램 도출 
-![image](https://user-images.githubusercontent.com/20077391/121859335-88ac8a80-cd32-11eb-9159-9599abcf67cf.png)
+![HEXAGONAL](https://user-images.githubusercontent.com/79756040/130847776-1554eb99-b08c-4075-b1e8-6875a0d4671f.png)
  
  # 구현
  
