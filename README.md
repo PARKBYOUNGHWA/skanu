@@ -755,10 +755,6 @@ siege -c100 -t60S -r10 -v --content-type "application/json" 'http://order:8080/o
 ## Zero-Downtime deploy (Readiness Probe)
 
 - 먼저 무정지 재배포가 100% 되는 것인지 확인하기 위해서 Autoscaler 이나 CB 설정을 제거함
-
-![image](https://user-images.githubusercontent.com/44763296/130768667-b3df9f46-d907-40aa-9304-4b0888a9983b.png)
-
-
 - 생성된 siege Pod 안쪽에서 정상작동 확인
 ```
 kubectl exec -it siege -- /bin/bash
@@ -771,6 +767,7 @@ siege -c1 -t60S -v http://order:8080/orders --delay=1S
 ```
 
 - Readiness가 설정되지 않은 yml 파일로 배포 진행
+![image](https://user-images.githubusercontent.com/44763296/130768667-b3df9f46-d907-40aa-9304-4b0888a9983b.png)
 ```
 kubectl apply -f deployment_without_readiness.yml
 ```
