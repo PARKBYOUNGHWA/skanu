@@ -770,6 +770,7 @@ siege -c100 -t60S -r10 -v --content-type "application/json" 'http://order:8080/o
 - CB 잘 적용됨을 확인
 - 이미지 추가 예정
 
+![image](https://user-images.githubusercontent.com/89397401/130823691-3df705c8-b964-4175-80c2-8970f4be57da.png)
 
 
 
