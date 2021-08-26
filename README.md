@@ -772,7 +772,81 @@ siege -c100 -t60S -r10 -v --content-type "application/json" 'http://order:8080/o
 
 ![image](https://user-images.githubusercontent.com/89397401/130823691-3df705c8-b964-4175-80c2-8970f4be57da.png)
 
+## Circuit Breaker
 
+  * 서킷 브레이킹 프레임워크의 선택: Spring FeignClient + Istio를 설치하여, istio-test-ns namespace에 주입하여 구현함
+
+시나리오는 주문(order)-->결제(payment) 연결을 RESTful Request/Response 로 연동하여 구현이 되어있고, 예약 요청이 과도할 경우 CB 를 통하여 장애격리.
+
+- Istio 다운로드 및 PATH 추가, 설치, namespace에 istio주입
+
+```sh
+$ curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.7.1 TARGET_ARCH=x86_64 sh -
+※ istio v1.7.1은 Kubernetes 1.16이상에서만 동작
+```
+
+- istio PATH 추가
+
+```sh
+$ cd istio-1.7.1
+$ export PATH=$PWD/bin:$PATH
+```
+
+- istio 설치
+
+```sh
+$ istioctl install --set profile=demo --set hub=gcr.io/istio-release
+※ Docker Hub Rate Limiting 우회 설정
+```
+
+- namespace에 istio주입
+
+```sh
+$ kubectl label namespace istio-test-ns istio-injection=enabled
+```
+
+- Virsual Service 생성 (Timeout 3초 설정)
+- /order/kubernetes/virtual-service.yaml 파일 
+
+```yml
+  apiVersion: networking.istio.io/v1alpha3
+  kind: VirtualService
+  metadata:
+    name: vs-order-network-rule
+    namespace: istio-test-ns
+  spec:
+    hosts:
+    - order
+    http:
+    - route:
+      - destination:
+          host: order
+      timeout: 3s
+```	  
+
+![image](https://user-images.githubusercontent.com/82795806/120985451-956f3280-c7b6-11eb-95a4-eb5a8c1ebce4.png)
+
+
+- order 서비스 재배포 후 Pod에 CB 부착 확인
+
+![image](https://user-images.githubusercontent.com/82795806/120985804-ed0d9e00-c7b6-11eb-9f13-8a961c73adc0.png)
+
+
+- 부하테스터 siege 툴을 통한 서킷 브레이커 동작 확인:
+  - 동시사용자 100명, 60초 동안 실시
+
+```sh
+$ siege -c100 -t10S -v --content-type "application/json" 'http://20.200.225.249:8080/orders POST {"productId": 1, "qty":3, "paymentTyp": "cash", "cost": 1000, "productName": "Coffee"}'
+```
+![image](https://user-images.githubusercontent.com/82795806/120986972-1549cc80-c7b8-11eb-83e1-7bac5a0e80ed.png)
+
+
+- 운영시스템은 죽지 않고 지속적으로 CB 에 의하여 적절히 회로가 열림과 닫힘이 벌어지면서 자원을 보호하고 있음을 보여줌. 
+- 약 84%정도 정상적으로 처리되었음.
+
+
+- 최종결과 확인
+![image](https://user-images.githubusercontent.com/89397401/130823691-3df705c8-b964-4175-80c2-8970f4be57da.png)
 
 ## Zero-Downtime deploy (Readiness Probe)
 
