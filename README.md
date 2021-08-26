@@ -771,18 +771,18 @@ kubectl get all
 ![image](https://user-images.githubusercontent.com/89397401/130916203-069469c2-248b-49a5-a23c-eedb442e3373.png)
 
 
-- siege 를 활용하여 User가 1명인 상황에 대해서 요청을 보낸다. (설정값 c1)
+- siege 를 활용하여 User가 2명인 상황에 대해서 요청을 보낸다. (설정값 c2)
   - siege 는 같은 namespace 에 생성하고, 해당 pod 안에 들어가서 siege 요청을 실행한다.
 ```
 kubectl exec -it (siege POD 이름) -c siege -n istio-test-ns -- /bin/bash
 
-siege -c1 -t30S -v --content-type "application/json" 'http://20.200.225.249:8080/orders POST {"productId": 1, "qty":3, "paymentTyp": "cash", "cost": 1000, "productName": "Coffee"}'
+siege -c2 -t30S -v --content-type "application/json" 'http://20.200.225.249:8080/orders POST {"productId": 1, "qty":3, "paymentTyp": "cash", "cost": 1000, "productName": "Coffee"}'
 ```
 
 - 최종결과 확인
 ![image](https://user-images.githubusercontent.com/89397401/130823691-3df705c8-b964-4175-80c2-8970f4be57da.png)
 
-- 운영시스템은 죽지 않고 지속적으로 CB 에 의하여 적절히 회로가 열림과 닫힘이 벌어지면서 자원을 보호하고 있음을 보여줌. 
+- 운영시스템은 죽지 않고 지속적으로 Circuit Breaker 에 의하여 적절히 회로가 열림과 닫힘이 벌어지면서 자원을 보호하고 있음을 보여줌. 
 - 약 84%정도 정상적으로 처리되었음.
 
 
