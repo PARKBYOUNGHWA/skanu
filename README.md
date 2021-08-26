@@ -771,6 +771,53 @@ siege -c100 -t60S -r10 -v --content-type "application/json" 'http://order:8080/o
 
 ## Circuit Breaker
 
+- istio를 활용하여 Circuit Breaker 동작을 확인한다.
+- istio 설치 후 istio injection이 enabled 된 namespace를 생성한다.
+```
+kubectl create namespace istio-test-ns
+kubectl label namespace istio-test-ns istio-injection=enabled
+```
+
+- namespace label에 istio-injection이 enabled 된 것을 확인한다.  
+
+![image](https://user-images.githubusercontent.com/89397401/130896837-0c6d68ec-f5e0-4ccf-be46-7f089829aaa7.png)
+
+- 해당 namespace에 기존 서비스들을 재배포한다.
+
+- deploy 실행
+```Bash
+kubectl create deploy order --image x0006319acr.azurecr.io/order:latest -n istio-test-ns
+kubectl create deploy payment --image x0006319acr.azurecr.io/payment:latest -n istio-test-ns
+kubectl create deploy delivery --image x0006319acr.azurecr.io/delivery:latest -n istio-test-ns
+kubectl create deploy gateway --image x0006319acr.azurecr.io/gateway:latest -n istio-test-ns
+kubectl create deploy ordertrace --image x0006319acr.azurecr.io/ordertrace:latest -n istio-test-ns
+kubectl get all
+```
+
+- expose 하기
+```Bash
+kubectl expose deploy order --type="ClusterIP" --port=8080 -n istio-test-ns
+kubectl expose deploy payment --type="ClusterIP" --port=8080 -n istio-test-ns
+kubectl expose deploy delivery --type="ClusterIP" --port=8080 -n istio-test-ns
+kubectl expose deploy gateway --type="LoadBalancer" --port=8080 -n istio-test-ns
+kubectl expose deploy ordertrace --type="ClusterIP" --port=8080 -n istio-test-ns
+kubectl get all
+```
+
+- 서비스들이 정상적으로 배포되었고, Container가 2개씩 생성된 것을 확인한다. 
+
+![image](https://user-images.githubusercontent.com/89397401/130897459-f4d97481-bfb0-4422-957b-cab08b3fa9ef.png)
+
+- siege 를 활용하여 User가 1명인 상황에 대해서 요청을 보낸다. (설정값 c1)
+  - siege 는 같은 namespace 에 생성하고, 해당 pod 안에 들어가서 siege 요청을 실행한다.
+```
+kubectl exec -it (siege POD 이름) -c siege -n istio-test-ns -- /bin/bash
+
+siege -c1 -t30S -v --c
+```
+
+---------------------------------
+
   * 서킷 브레이킹 프레임워크의 선택: Spring FeignClient + Istio를 설치하여, istio-test-ns namespace에 주입하여 구현함
 
 시나리오는 주문(order)-->결제(payment) 연결을 RESTful Request/Response 로 연동하여 구현이 되어있고, 예약 요청이 과도할 경우 CB 를 통하여 장애격리.
@@ -894,8 +941,6 @@ kubectl apply -f deployment_with_readiness.yml
 - 배포 중 pod가 2개가 뜨고, 새롭게 띄운 pod가 준비될 때까지, 기존 pod가 유지됨을 확인
 ![image](https://user-images.githubusercontent.com/44763296/130477984-32b58cbf-a666-4e52-a377-d99c7a1477b7.png)
 ![image](https://user-images.githubusercontent.com/44763296/130478069-f3b1156e-bddb-48e3-ace9-ee21d3965206.png)
-
-
 
 
 ## Self-healing (Liveness Probe)
