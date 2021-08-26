@@ -711,7 +711,7 @@ $ watch kubectl get all
 
 ## Circuit Breaker
 
-- istio를 활용하여 Circuit Breaker 동작을 확인한다.
+- Spring FeignClient + istio를 활용하여 Circuit Breaker 동작을 확인한다.
 - istio 설치 후 istio injection이 enabled 된 namespace를 생성한다.
 ```
 kubectl create namespace istio-test-ns
@@ -748,79 +748,35 @@ kubectl get all
 
 ![image](https://user-images.githubusercontent.com/89397401/130897459-f4d97481-bfb0-4422-957b-cab08b3fa9ef.png)
 
+- Circuit Breaker 설정을 위해 아래와 같은 Destination Rule을 생성한다.
+
+- Pending Request가 많을수록 오랫동안 쌓인 요청은 Response Time이 증가하게 되므로, 적절한 대기 쓰레드 풀을 적용하기 위해 connection pool을 설정했다.
+```yaml
+  apiVersion: networking.istio.io/v1alpha3
+  kind: DestinationRule
+  metadata:
+    name: dr-httpbin
+    namespace: istio-test-ns
+  spec:
+    host: gateway
+    trafficPolicy:
+      connectionPool:
+        http:
+          http1MaxPendingRequests: 1
+          maxRequestsPerConnection: 1
+```
+
+- 설정된 Destinationrule을 확인한다. 
+
+![image](https://user-images.githubusercontent.com/89397401/130916203-069469c2-248b-49a5-a23c-eedb442e3373.png)
+
+
 - siege 를 활용하여 User가 1명인 상황에 대해서 요청을 보낸다. (설정값 c1)
   - siege 는 같은 namespace 에 생성하고, 해당 pod 안에 들어가서 siege 요청을 실행한다.
 ```
 kubectl exec -it (siege POD 이름) -c siege -n istio-test-ns -- /bin/bash
 
-siege -c1 -t30S -v --c
-```
-
----------------------------------
-
-  * 서킷 브레이킹 프레임워크의 선택: Spring FeignClient + Istio를 설치하여, istio-test-ns namespace에 주입하여 구현함
-
-시나리오는 주문(order)-->결제(payment) 연결을 RESTful Request/Response 로 연동하여 구현이 되어있고, 예약 요청이 과도할 경우 CB 를 통하여 장애격리.
-
-- Istio 다운로드 및 PATH 추가, 설치, namespace에 istio주입
-
-```sh
-$ curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.7.1 TARGET_ARCH=x86_64 sh -
-※ istio v1.7.1은 Kubernetes 1.16이상에서만 동작
-```
-
-- istio PATH 추가
-
-```sh
-$ cd istio-1.7.1
-$ export PATH=$PWD/bin:$PATH
-```
-
-- istio 설치
-
-```sh
-$ istioctl install --set profile=demo --set hub=gcr.io/istio-release
-※ Docker Hub Rate Limiting 우회 설정
-```
-
-- namespace에 istio주입
-
-```sh
-$ kubectl label namespace istio-test-ns istio-injection=enabled
-```
-
-- Virsual Service 생성 (Timeout 3초 설정)
-- /order/kubernetes/virtual-service.yaml 파일 
-
-```yml
-  apiVersion: networking.istio.io/v1alpha3
-  kind: VirtualService
-  metadata:
-    name: vs-order-network-rule
-    namespace: istio-test-ns
-  spec:
-    hosts:
-    - order
-    http:
-    - route:
-      - destination:
-          host: order
-      timeout: 3s
-```	  
-
-![image](https://user-images.githubusercontent.com/82795806/120985451-956f3280-c7b6-11eb-95a4-eb5a8c1ebce4.png)
-
-
-- order 서비스 재배포 후 Pod에 CB 부착 확인
-
-![image](https://user-images.githubusercontent.com/82795806/120985804-ed0d9e00-c7b6-11eb-9f13-8a961c73adc0.png)
-
-
-- 부하테스터 siege 툴을 통한 서킷 브레이커 동작 확인:
-  - 동시사용자 100명, 60초 동안 실시
-
-```sh
-$ siege -c100 -t10S -v --content-type "application/json" 'http://20.200.225.249:8080/orders POST {"productId": 1, "qty":3, "paymentTyp": "cash", "cost": 1000, "productName": "Coffee"}'
+siege -c1 -t30S -v --content-type "application/json" 'http://20.200.225.249:8080/orders POST {"productId": 1, "qty":3, "paymentTyp": "cash", "cost": 1000, "productName": "Coffee"}'
 ```
 
 - 최종결과 확인
