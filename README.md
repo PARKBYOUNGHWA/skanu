@@ -716,9 +716,6 @@ $ watch kubectl get all
 ![image](https://user-images.githubusercontent.com/89397401/130736630-9a4de0c5-82d6-416c-a24a-11253d8412f0.png)
 
 
-
-
-
 ## 동기식 호출 / Circuit Breaker / 장애격리
 
 - 서킷 브레이킹 프레임워크의 선택: Spring FeignClient + Hystrix 옵션을 사용하여 구현함
@@ -838,15 +835,13 @@ $ kubectl label namespace istio-test-ns istio-injection=enabled
 ```sh
 $ siege -c100 -t10S -v --content-type "application/json" 'http://20.200.225.249:8080/orders POST {"productId": 1, "qty":3, "paymentTyp": "cash", "cost": 1000, "productName": "Coffee"}'
 ```
-![image](https://user-images.githubusercontent.com/82795806/120986972-1549cc80-c7b8-11eb-83e1-7bac5a0e80ed.png)
 
+- 최종결과 확인
+![image](https://user-images.githubusercontent.com/89397401/130823691-3df705c8-b964-4175-80c2-8970f4be57da.png)
 
 - 운영시스템은 죽지 않고 지속적으로 CB 에 의하여 적절히 회로가 열림과 닫힘이 벌어지면서 자원을 보호하고 있음을 보여줌. 
 - 약 84%정도 정상적으로 처리되었음.
 
-
-- 최종결과 확인
-![image](https://user-images.githubusercontent.com/89397401/130823691-3df705c8-b964-4175-80c2-8970f4be57da.png)
 
 ## Zero-Downtime deploy (Readiness Probe)
 
