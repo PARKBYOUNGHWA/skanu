@@ -341,7 +341,7 @@ spring:
         - id: stamp
           uri: http://stamp:8080
           predicates:
-            - Path= /stamp/**
+            - Path= /stamps/**
       globalcors:
         corsConfigurations:
           '[/**]':
