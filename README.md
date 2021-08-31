@@ -12,6 +12,7 @@
 5. 고객과 매니저는 마이페이지를 통해 진행상태(OrderTrace)를 확인할 수 있다.
 6. 음료가 준비되면 배달(Delivery)을 한다.
 7. 고객이 취소(Cancel)하는 경우 지불 및 제조, 배달이 취소가 된다.
+8. 결제가 완료되면 구매수량별 stamp를 적립, 결제 취소 시, 취소 수량만큼 stamp 를 차감한다. **(개인과제 기능추가)**
 
 비기능적 요구사항
 1. 트랜잭션
@@ -37,15 +38,25 @@
 ### 완성된 1차 모형
 ![image](https://user-images.githubusercontent.com/79756040/129881929-c6d1f38e-4115-4b5c-b650-4573852f9dd6.png)
 
-### 완성된 최종 모형 ( 시나리오 점검 후 )
+### 완성된 최종 모형 ( 시나리오 점검 후-조별과제 )
 ![image](https://user-images.githubusercontent.com/79756040/130614202-d1ddaef6-466f-436f-a4a3-51714383d43a.png)
 
+### 개인과제 기능추가
+ - stamp 적립을 위한 기능을 추가하였다.
+![image](https://user-images.githubusercontent.com/86760678/131473596-a87b8bb5-a074-41e7-a36a-f962b304055f.png)
+
+
 ## 헥사고날 아키텍처 다이어그램 도출 
+### 조별과제
 ![HEXAGONAL2](https://user-images.githubusercontent.com/79756040/130914262-ec9dd0ea-0f13-4195-befd-566cb4de2620.png)
+ 
+### 개인과제
+![image](https://user-images.githubusercontent.com/86760678/131475843-24ecfe5b-6e2c-48e7-96ee-748bd84850b2.png)
+
  
  # 구현
  
- ### 흐름도
+ ## 흐름도
  
 
  
@@ -55,7 +66,10 @@
  - 주문(order) 후 결제수행(pay) 시, 흐름도
 ![image](https://user-images.githubusercontent.com/86760678/130794970-29d3b38e-ea00-43cc-a4d8-51f5144d3803.png)
 
- 
+ **개인 과제 추가 후, 흐름도**
+![image](https://user-images.githubusercontent.com/86760678/131481148-82894e7d-4bff-439a-b2ad-b62a5ff0ac0c.png)
+
+
  
  분석/설계 단계에서 도출된 헥사고날 아키텍처에 따라, 각 BC별로 대변되는 마이크로 서비스들을 스프링부트로 구현하였다. 구현한 각 서비스를 로컬에서 실행하는 방법은 아래와 같다 (각자의 포트넘버는 8081 ~ 8084, 8088 이다)
 
@@ -71,15 +85,22 @@
 
    cd ordertrace
    mvn spring-boot:run
+      
+   cd stamp
+   mvn spring-boot:run
 
    cd gateway
    mvn spring-boot:run
   ```
-  
+   
 # DDD 의 적용
 
 - msaez.io 를 통해 구현한 Aggregate 단위로 Entity 를 선언 후, 구현을 진행하였다.
  Entity Pattern 과 Repository Pattern 을 적용하기 위해 Spring Data REST 의 RestRepository 를 적용하였다.
+ 
+**기존 개발된 조별과제 repository를 Git을 통해 내려받은 후, 신규 추가된 stamp service에 대한 소스를 msaez에서 신규 생성된 소스를 로컬에서 머지하는 작업을 진행하였다.**
+
+![image](https://user-images.githubusercontent.com/86760678/131482125-54116ccc-95a4-49c2-94c5-67903862a67a.png)
 
  ### Order 서비스의 Order.java 
 
@@ -231,6 +252,23 @@ public class PolicyHandler{
 ![image](https://user-images.githubusercontent.com/86760678/130349926-eff16870-1b96-465b-af2c-399eabbabd01.png)
 ![image](https://user-images.githubusercontent.com/86760678/130349952-376385d7-6ef2-42e6-ae80-6b0dd4d53d79.png)
 
+
+### 개인 과제 기능 추가 확인 (( stamp 기능 확인 ))
+- 결제(Pay) 수행
+
+![image](https://user-images.githubusercontent.com/86760678/131518386-2bb7e651-05c3-47b7-bfa2-0ef1a36316e7.png)
+
+- stamp 적립 확인
+
+![image](https://user-images.githubusercontent.com/86760678/131518473-ea6a533e-00fb-4cd2-864c-e6049dbf0d98.png)
+
+- 결제취소 수행 및 stamp 감소 확인
+
+![image](https://user-images.githubusercontent.com/86760678/131518791-1945e0e6-634a-4366-a640-6d5da1dbcfe8.png)
+
+
+
+
 # Gateway 적용
 API Gateway를 통하여 마이크로 서비스들의 진입점을 통일하였다.
 
@@ -261,6 +299,10 @@ spring:
           uri: http://localhost:8084
           predicates:
             - Path= /orderTraces/**
+        - id: stamp
+          uri: http://localhost:8085
+          predicates:
+            - Path= /stamps/**
       globalcors:
         corsConfigurations:
           '[/**]':
@@ -296,6 +338,10 @@ spring:
           uri: http://ordertrace:8080
           predicates:
             - Path= /orderTraces/**
+        - id: stamp
+          uri: http://stamp:8080
+          predicates:
+            - Path= /stamp/**
       globalcors:
         corsConfigurations:
           '[/**]':
@@ -315,6 +361,7 @@ server:
 # 폴리그랏 퍼시스턴스
 - delivery 서비스의 경우, 다른 마이크로 서비스와 달리 hsql을 구현하였다.
 - 이를 통해 서비스 간 다른 종류의 데이터베이스를 사용하여도 문제 없이 동작하여 폴리그랏 퍼시스턴스를 충족함.
+
 ### delivery 서비스의 pom.xml
 ![image](https://user-images.githubusercontent.com/86760678/130350197-5d6071e2-1fb4-42fc-95ca-c44e21619ed5.png)
 
@@ -493,10 +540,10 @@ viewer 인 ordertraces 서비스를 별도로 구현하여 아래와 같이 view
   
 ## Deploy / Pipeline
 
-- git에서 소스 가져오기
+- git에서 소스 가져오기 (개별 과제 진행을 위해 조별 결과물 Fork 후 진행)
 
 ```
-git clone https://github.com/3-5Team/skanu.git
+git clone https://github.com/PARKBYOUNGHWA/skanu.git
 ```
 
 - Build 및 Azure Container Resistry(ACR) 에 Push 하기
