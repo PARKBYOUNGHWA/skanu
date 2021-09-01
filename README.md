@@ -249,8 +249,9 @@ public class PolicyHandler{
 적용 후 REST API 테스트를 통해 정상 동작 확인할 수 있다.
 - 주문(Ordered) 수행의 결과
 
-![image](https://user-images.githubusercontent.com/86760678/130349926-eff16870-1b96-465b-af2c-399eabbabd01.png)
-![image](https://user-images.githubusercontent.com/86760678/130349952-376385d7-6ef2-42e6-ae80-6b0dd4d53d79.png)
+![image](https://user-images.githubusercontent.com/86760678/131693038-73b77e00-af9e-4734-be52-594cb9d46cf0.png)
+
+![image](https://user-images.githubusercontent.com/86760678/131693066-b67492e7-7c90-4482-b651-a22561cb3a7a.png)
 
 
 ### 개인 과제 기능 추가 확인 (( stamp 기능 확인 ))
@@ -434,89 +435,127 @@ public class Order {
 
 ### 이하 생략
 ```
+ **신규 Merge한 소스 기준으로 재테스트 수행**
 
-- payment서비스를 내림
+- payment서비스를 올리지 않을 시, 주문(order) 요청 및 에러 난 화면 표시
 
-![image](https://user-images.githubusercontent.com/86760678/130350522-9f175e77-47f6-43c9-84bb-2c08fadd8525.png)
+![image](https://user-images.githubusercontent.com/86760678/131693735-a7dd02f7-787b-4373-be30-b766f535b86a.png)
 
-- 주문(order) 요청 및 에러 난 화면 표시
+- payment 서비스 기동 후 다시 주문 요청
 
-![image](https://user-images.githubusercontent.com/86760678/130350564-86e59bda-2b77-44ee-b872-b5939634ba8b.png)
+![image](https://user-images.githubusercontent.com/86760678/131693913-96dbfb20-aa9d-46c4-9759-0980361432ca.png)
 
-- payment 서비스 재기동 후 다시 주문 요청
-
-![image](https://user-images.githubusercontent.com/86760678/130350697-2ca7b817-36d6-4f33-80b7-be19a1f4ce7a.png)
 
 - payment 서비스에 주문 대기 상태로 저장 확인
 
-![image](https://user-images.githubusercontent.com/86760678/130350742-87a88566-aad3-41e8-a72e-96cce39fa9c5.png)
+![image](https://user-images.githubusercontent.com/86760678/131693969-abc87716-af03-4f02-8f10-e27f2f121aaa.png)
 
 
 # 비동기식 호출(Pub/Sub 방식)
-- order 서버스 내 Order.java에서 아래와 같이 서비스 Pub 구현
+- Payment 서버스 내 Payment.java에서 아래와 같이 서비스 Pub 구현
 
 ```java
 
 ///
 
-@Entity
-@Table(name="Order_table")
-public class Order {
+    @PostPersist
+    public void onPostPersist(){
+        Paid paid = new Paid();
+        BeanUtils.copyProperties(this, paid);
+        paid.publishAfterCommit();
+    }
 
-///
-    @PostRemove
-    public void onPostRemove(){
-        OrderCancelled orderCancelled = new OrderCancelled();
-        BeanUtils.copyProperties(this, orderCancelled);
-        orderCancelled.setOrderStatus("Order Cancelled");
-        orderCancelled.publishAfterCommit();
+    @PostUpdate
+    public void onPostUpdate(){
+        Paid paid = new Paid();
+        BeanUtils.copyProperties(this, paid);
+        paid.publishAfterCommit();
+    }
+
+    @PreRemove
+    public void onPreRemove(){
+        PayCancelled payCancelled = new PayCancelled();
+        BeanUtils.copyProperties(this, payCancelled);
+        payCancelled.publishAfterCommit();
+
     }
 ///
 
 ```
 
-- payment 서비스 내 PolicyHandler.java에서 아래와 같이 Sub 구현
+- stamp 서비스 내 PolicyHandler.java에서 아래와 같이 Sub 구현
 
 ```java
 ///
 
 @Service
 public class PolicyHandler{
-    @Autowired PaymentRepository paymentRepository;
+    @Autowired StampRepository stampRepository;
 
     @StreamListener(KafkaProcessor.INPUT)
-    public void wheneverOrderCancelled_PayCancel(@Payload OrderCancelled orderCancelled)
-    {
-        if(orderCancelled.validate())
+    public void wheneverPayed_EarnStamp(@Payload Paid paid){
+
+        if(paid.validate())
         {
-            System.out.println("\n\n##### listener PayCancel : " + orderCancelled.toJson() + "\n\n");
-            List<Payment> paymanetsList = paymentRepository.findByOrderId(orderCancelled.getId());
-            if(paymanetsList.size()>0) {
-                for(Payment payment : paymanetsList) {
-                    if(payment.getOrderId().equals(orderCancelled.getId())){
-                        System.out.println("##### OrderId :: "+ payment.getId() 
-                                                      +" ... "+ payment.getProductName()+" is Cancelled");
-                        payment.setPaymentType("ORDER CANCEL");
-                        paymentRepository.save(payment);
+
+            if(!paid.getPhoneNumber().isEmpty())
+            {
+                System.out.println("\n\n##### listener paid : " + paid.toJson() + "\n\n");
+
+                List<Stamp> stampList = stampRepository.findByPhoneNumber(paid.getPhoneNumber());
+                if(stampList.size()>0) {
+                    for(Stamp stamp : stampList) {
+                        if(stamp.getPhoneNumber().equals(paid.getPhoneNumber())){
+                            stamp.setStampQty(stamp.getStampQty()+paid.getQty());
+                            stampRepository.save(stamp);
+                        }
+                    }
+                }
+                else{
+                    Stamp newStamp = new Stamp();
+                    newStamp.setPhoneNumber(paid.getPhoneNumber());
+                    newStamp.setStampQty(paid.getQty());
+                    stampRepository.save(newStamp);
+                }
+            }
+        }
+
+    }
+    @StreamListener(KafkaProcessor.INPUT)
+    public void wheneverPayCancelled_EarnStamp(@Payload PayCancelled payCancelled){
+
+        if(!payCancelled.validate()) return;
+
+        System.out.println("\n\n##### listener EarnStamp : " + payCancelled.toJson() + "\n\n");
+
+        if(!payCancelled.getPhoneNumber().isEmpty())
+        {
+            System.out.println("\n\n##### listener paid : " + payCancelled.toJson() + "\n\n");
+
+            List<Stamp> stampList = stampRepository.findByPhoneNumber(payCancelled.getPhoneNumber());
+            if(stampList.size()>0) {
+                for(Stamp stamp : stampList) {
+                    if(stamp.getPhoneNumber().equals(payCancelled.getPhoneNumber())){
+                        stamp.setStampQty(stamp.getStampQty() - payCancelled.getQty());
+                        stampRepository.save(stamp);
                     }
                 }
             }
         }
     }
-///
-}
+
 
 ```
 
-- 비동기식 호출은 다른 서비스가 비정상이여도 이상없이 동작가능하여, payment 서비스에 장애가 나도 order 서비스는 정상 동작을 확인
+- 비동기식 호출은 다른 서비스가 비정상이여도 이상없이 동작가능하여, stamp 서비스에 장애가 나도 payment 서비스는 정상 동작을 확인
 
-### payment 서비스 내림
+### stamp 서비스 내림
 
-![image](https://user-images.githubusercontent.com/86760678/130352224-7d22d74d-4ebf-4ac5-91b0-b36092219ca4.png)
+![image](https://user-images.githubusercontent.com/86760678/131694811-55b25fec-1bd0-4297-b387-f89ca32a35f2.png)
 
-### 주문 취소
+### 결제
 
-![image](https://user-images.githubusercontent.com/86760678/130352256-ff8aa934-f49c-4f38-a3a8-3774c05fc956.png)
+![image](https://user-images.githubusercontent.com/86760678/131694929-89f125ab-96fd-4703-85b7-1362cefb1433.png)
 
 
 
@@ -524,15 +563,20 @@ public class PolicyHandler{
 
 viewer 인 ordertraces 서비스를 별도로 구현하여 아래와 같이 view가 출력된다.
 
+
 ### 주문 수행 후, ordertraces
 
-![image](https://user-images.githubusercontent.com/86760678/130352429-83e1a1d3-e263-47d7-9760-becfccf9cc96.png)
+![image](https://user-images.githubusercontent.com/86760678/131696055-83c810a9-18f1-4fc6-9aef-54afd479e275.png)
 
-![image](https://user-images.githubusercontent.com/86760678/130352435-18c4912e-11d7-4368-b0b5-0a8568bc740d.png)
+![image](https://user-images.githubusercontent.com/86760678/131696093-313a79ab-bc34-4013-a98d-596c24fe1c5a.png)
 
-### 주문 취소 수행 후, ordertraces
 
-![image](https://user-images.githubusercontent.com/86760678/130352458-f2b7ad3e-4b00-4fb8-a06e-75e985475c53.png)
+### 결제 수행 후, ordertraces
+
+![image](https://user-images.githubusercontent.com/86760678/131694929-89f125ab-96fd-4703-85b7-1362cefb1433.png)
+
+![image](https://user-images.githubusercontent.com/86760678/131695474-0f8c51b3-0863-4329-9024-8e1e237deb18.png)
+
 
 
 
@@ -549,40 +593,47 @@ git clone https://github.com/PARKBYOUNGHWA/skanu.git
 - Build 및 Azure Container Resistry(ACR) 에 Push 하기
  
 ```bash
-cd ..
-cd order
-mvn package -B
-az acr build --registry x0006319acr --image x0006319acr.azurecr.io/order:latest .
 
-cd ..
-cd payment
-mvn package -B
-az acr build --registry x0006319acr --image x0006319acr.azurecr.io/payment:latest .
+cd ../order
+mvn package
+docker build -t skccpbh.azurecr.io/order:v1 .
+docker push skccpbh.azurecr.io/order:v1
 
-cd ..
-cd delivery
-mvn package -B
-az acr build --registry x0006319acr --image x0006319acr.azurecr.io/delivery:latest .
+cd ../payment
+mvn package
+docker build -t skccpbh.azurecr.io/payment:v1 .
+docker push skccpbh.azurecr.io/payment:v1
 
-cd ..
-cd ordertrace
-mvn package -B
-az acr build --registry x0006319acr --image x0006319acr.azurecr.io/ordertrace:latest .
+cd ../delivery
+mvn package
+docker build -t skccpbh.azurecr.io/delivery:v1 .
+docker push skccpbh.azurecr.io/delivery:v1
 
-cd ..
-cd gateway
-mvn package -B
-az acr build --registry x0006319acr --image x0006319acr.azurecr.io/gateway:latest .
+cd ../ordertrace
+mvn package
+docker build -t skccpbh.azurecr.io/ordertrace:v1 .
+docker push skccpbh.azurecr.io/ordertrace:v1
+
+cd ../stamp
+mvn package
+docker build -t skccpbh.azurecr.io/stamp:v1 .
+docker push skccpbh.azurecr.io/stamp:v1
+
+cd ../gateway
+mvn package
+docker build -t skccpbh.azurecr.io/gateway:v1 .
+docker push skccpbh.azurecr.io/gateway:v1
 
 ```
 
 - ACR에 정상 Push 완료
 
-![image](https://user-images.githubusercontent.com/89397401/130728262-6870ae32-b1fd-487d-9c38-1314b5fe9a23.png)
+![image](https://user-images.githubusercontent.com/86760678/131692476-0300ba0b-fb51-4229-9d17-73fe69e7cb6d.png)
+
 
 - Kafka 설치 및 배포 완료
 
-![image](https://user-images.githubusercontent.com/89397401/130728767-545dc1e9-6c3b-4937-b3e7-0a8af179567c.png)
+![image](https://user-images.githubusercontent.com/86760678/131696352-86b2a913-44b1-407e-91ca-b9619c18c8ea.png)
 
 - Kubernetes Deployment, Service 생성
 
@@ -592,23 +643,23 @@ cd order/kubernetes
 kubectl apply -f deployment.yml
 kubectl apply -f service.yaml
 
-cd ..
-cd payment/kubernetes
+cd ../../payment/kubernetes
 kubectl apply -f deployment.yml
 kubectl apply -f service.yaml
 
-cd ..
-cd delivery/kubernetes
+cd ../../delivery/kubernetes
 kubectl apply -f deployment.yml
 kubectl apply -f service.yaml
 
-cd ..
-cd ordertrace/kubernetes
+cd ../../ordertrace/kubernetes
 kubectl apply -f deployment.yml
 kubectl apply -f service.yaml
 
-cd ..
-cd gateway/kubernetes
+cd ../../stamp/kubernetes
+kubectl apply -f deployment.yml
+kubectl apply -f service.yaml
+
+cd ../../gateway/kubernetes
 kubectl apply -f deployment.yml
 kubectl apply -f service.yaml
 ```
@@ -633,7 +684,7 @@ spec:
     spec:
       containers:
         - name: order
-          image: x0006319acr.azurecr.io/order:latest
+          image: skccpbh.azurecr.io/order:v1
           ports:
             - containerPort: 8080
 ```
@@ -656,20 +707,19 @@ spec:
 
 전체 deploy 완료 현황
 
-![image](https://user-images.githubusercontent.com/89397401/130646019-c0a9e001-3433-44da-8acd-9a1637a4b2e9.png)
+![image](https://user-images.githubusercontent.com/86760678/131704455-bdad497a-e0cb-4e67-aaf4-4d0a52ece2dd.png)
+
 
 ## Persistence Volume
 
 - 비정형 데이터를 관리하기 위해 PVC 생성 파일
-
-pvc.yml
-- AccessModes: **ReadWriteMany**
-- storeageClass: **azurefile**
-```yml
+- 신규 생성한 stamp service에 PVC 생성
+**pvc.yml**
+```yal
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: order-disk
+  name: stamp-disk
 spec:
   accessModes:
   - ReadWriteMany
@@ -678,37 +728,61 @@ spec:
     requests:
       storage: 1Gi
 ```
-deploymeny.yml
+**deploymeny.yml**
 ```yml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: order
+  name: stamp
   labels:
-    app: order
+    app: stamp
 spec:
   replicas: 1
-  -- 생략 --
+  selector:
+    matchLabels:
+      app: stamp
   template:
-  -- 생략 --
+    metadata:
+      labels:
+        app: stamp
     spec:
       containers:
-        - name: order
-        -- 생략 --
+        - name: stamp
+          image: skccpbh/stamp:v1
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 10
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 10
+          livenessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 120
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 5
           volumeMounts:
             - name: volume
               mountPath: "/mnt/azure"
       volumes:
       - name: volume
         persistentVolumeClaim:
-          claimName: order-disk
+          claimName: stamp-disk
 ```
-application.yml
+
+**application.yml**
+
 ```yml
 logging:
   level:
     root: info
-  file: /mnt/azure/logs/order.log
+  file: /mnt/azure/logs/stamp.log
 ```
 - 로그 확인
 
