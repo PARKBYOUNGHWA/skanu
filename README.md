@@ -728,52 +728,37 @@ spec:
     requests:
       storage: 1Gi
 ```
-**deploymeny.yml**
+**deploymeny_pvc.yml**
 ```yml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: stamp
-  labels:
-    app: stamp
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: stamp
-  template:
-    metadata:
-      labels:
-        app: stamp
-    spec:
-      containers:
-        - name: stamp
-          image: skccpbh/stamp:v1
-          ports:
-            - containerPort: 8080
-          readinessProbe:
-            httpGet:
-              path: '/actuator/health'
-              port: 8080
-            initialDelaySeconds: 10
-            timeoutSeconds: 2
-            periodSeconds: 5
-            failureThreshold: 10
-          livenessProbe:
-            httpGet:
-              path: '/actuator/health'
-              port: 8080
-            initialDelaySeconds: 120
-            timeoutSeconds: 2
-            periodSeconds: 5
-            failureThreshold: 5
-          volumeMounts:
-            - name: volume
-              mountPath: "/mnt/azure"
-      volumes:
-      - name: volume
-        persistentVolumeClaim:
-          claimName: stamp-disk
+---
+
+spring:
+  profiles: docker
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: my-kafka.kafka.svc.cluster.local:9092
+        streams:
+          binder:
+            configuration:
+              default:
+                key:
+                  serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+                value:
+                  serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+      bindings:
+        event-in:
+          group: stamp
+          destination: sktkanumodel
+          contentType: application/json
+        event-out:
+          destination: sktkanumodel
+          contentType: application/json
+logging:
+  level:
+    root: info
+  file: /mnt/stamp.log
 ```
 
 **application.yml**
@@ -786,7 +771,8 @@ logging:
 ```
 - 로그 확인
 
-![PVC-LOGS](https://user-images.githubusercontent.com/89397401/130727058-c8b4e2d1-b07e-4b4f-9fdb-9acfe25f5943.png)
+![image](https://user-images.githubusercontent.com/86760678/132223208-5b5490d8-81bf-4e7f-8294-18e559fbf15b.png)
+
 
 
 ## Autoscale (HPA:HorizontalPodAutoscaler)
