@@ -855,7 +855,7 @@ siege -c1 -t60S -v http://delivery:8080/deliveries --delay=1S
 ```
 
 - Readiness가 설정된 yml 파일로 배포 진행
-```
+``` yaml
 readinessProbe:
   httpGet:
     path: '/actuator/health'
@@ -882,7 +882,7 @@ kubectl apply -f deployment_with_readiness.yml
 - delivery 서비스의 yml 파일에 liveness probe 설정을 바꾸어서, liveness probe 가 동작함을 확인
 
 - liveness probe 옵션을 추가하되,  서비스 포트가 아닌 80으로 설정, readiness probe 미적용
-```
+```yaml
 
           livenessProbe:
             httpGet:
