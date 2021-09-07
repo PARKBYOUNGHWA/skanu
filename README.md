@@ -905,17 +905,17 @@ siege -c2 -t30S -v --content-type "application/json" 'http://20.200.225.249:8080
 - 생성된 siege Pod 안쪽에서 정상작동 확인
 ```
 kubectl exec -it siege -- /bin/bash
-siege -c1 -t2S -v http://order:8080/order
+siege -c1 -t2S -v http://delivery:8080/deliveries
 ```
 
 - siege 로 배포작업 직전에 워크로드를 모니터링 함
 ```
-siege -c1 -t60S -v http://order:8080/orders --delay=1S
+siege -c1 -t60S -v http://delivery:8080/deliveries --delay=1S
 ```
 
 - Readiness가 설정되지 않은 yml 파일로 배포 진행
  
-![image](https://user-images.githubusercontent.com/44763296/130768667-b3df9f46-d907-40aa-9304-4b0888a9983b.png)
+![image](https://user-images.githubusercontent.com/86760678/132274244-bc23dcbb-f4fe-4ade-9656-e7bcdacf0647.png)
 
 ```
 kubectl apply -f deployment_without_readiness.yml
@@ -923,12 +923,12 @@ kubectl apply -f deployment_without_readiness.yml
 
 - 아래 그림과 같이, Kubernetes가 준비가 되지 않은 delivery pod에 요청을 보내서 siege의 Availability 가 100% 미만으로 떨어짐 
 
-![image](https://user-images.githubusercontent.com/44763296/130476167-1b1eca10-ac7f-4065-86b7-69af9dcd7be5.png)
+![image](https://user-images.githubusercontent.com/86760678/132274281-36bba8a8-fc62-4382-ad00-32c2be313708.png)
 
 
 - 정지 재배포 여부 확인 전에, siege 로 배포작업 직전에 워크로드를 모니터링
 ```
-siege -c1 -t60S -v http://order:8080/orders --delay=1S
+siege -c1 -t60S -v http://delivery:8080/deliveries --delay=1S
 ```
 
 - Readiness가 설정된 yml 파일로 배포 진행
@@ -948,35 +948,48 @@ kubectl apply -f deployment_with_readiness.yml
 ```
 
 - 배포 중 pod가 2개가 뜨고, 새롭게 띄운 pod가 준비될 때까지, 기존 pod가 유지됨을 확인
-![image](https://user-images.githubusercontent.com/44763296/130477984-32b58cbf-a666-4e52-a377-d99c7a1477b7.png)
-![image](https://user-images.githubusercontent.com/44763296/130478069-f3b1156e-bddb-48e3-ace9-ee21d3965206.png)
+
+![image](https://user-images.githubusercontent.com/86760678/132285284-9265e865-ae0a-4301-9678-9016d44e99b6.png)
+
+![image](https://user-images.githubusercontent.com/86760678/132285358-7e4c7c90-ba5f-477d-ae0c-77a045f0abb4.png)
 
 
 ## Self-healing (Liveness Probe)
 
-- order 서비스의 yml 파일에 liveness probe 설정을 바꾸어서, liveness probe 가 동작함을 확인
+- delivery 서비스의 yml 파일에 liveness probe 설정을 바꾸어서, liveness probe 가 동작함을 확인
 
-- liveness probe 옵션을 추가하되, 서비스 포트가 아닌 8090으로 설정, readiness probe 미적용
+- liveness probe 옵션을 추가하되,  서비스 포트가 아닌 80으로 설정, readiness probe 미적용
 ```
-        livenessProbe:
+
+          livenessProbe:
             httpGet:
               path: '/actuator/health'
-              port: 8090
-            initialDelaySeconds: 5
+              port: 80
+            initialDelaySeconds: 120
             timeoutSeconds: 2
             periodSeconds: 5
             failureThreshold: 5
 ```
 
-- order 서비스에 liveness가 적용된 것을 확인
+- delivery 서비스에 liveness가 적용된 것을 확인
 ```
-kubectl describe po order
+kubectl describe po delivery
 ```
-![image](https://user-images.githubusercontent.com/44763296/130482646-e598d23a-85b5-4e9d-b48b-6c9b99c7955f.png)
+
+![image](https://user-images.githubusercontent.com/86760678/132297161-3aceafee-7306-4d66-a4c6-9c1d04078661.png)
 
 
-- order 에 liveness가 발동되었고, 8090 포트에 응답이 없기에 Restart가 발생함
-![image](https://user-images.githubusercontent.com/44763296/130482675-ec20503f-a5d1-4c3d-9261-a89ae7ee17f1.png)
-![image](https://user-images.githubusercontent.com/44763296/130482712-e18cda81-f3c8-47f7-abfc-47188cc423ad.png)
+![image](https://user-images.githubusercontent.com/86760678/132297443-768bdc93-295d-4a2e-9f84-e71c2b49e037.png)
+
+
+**pod가 반복적으로 재시작하면서 CrashLoopBackOff 상태가 됨**
+![image](https://user-images.githubusercontent.com/86760678/132298071-2988607b-f9df-427c-bdbd-7b0c6f227e93.png)
+
+
+
+**error사항이 없이 service 재기동하여, CrashLoopBackOff pod를 내리며 신규 pod 생성**
+![image](https://user-images.githubusercontent.com/86760678/132298201-dc31ddc2-9d3e-4250-9a0e-5328083e3198.png)
+
+
 
 
