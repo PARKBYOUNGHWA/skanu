@@ -822,83 +822,6 @@ $ kubectl get all
 ![image](https://user-images.githubusercontent.com/86760678/132232444-35792d1e-2e55-4239-a1ee-b706597e43fe.png)
 
 
-## Circuit Breaker
-
-- Spring FeignClient + istio를 활용하여 Circuit Breaker 동작을 확인한다.
-- istio 설치 후 istio injection이 enabled 된 namespace를 생성한다.
-```
-kubectl create namespace istio-test-ns
-kubectl label namespace istio-test-ns istio-injection=enabled
-```
-
-- namespace label에 istio-injection이 enabled 된 것을 확인한다.  
-
-![image](https://user-images.githubusercontent.com/89397401/130896837-0c6d68ec-f5e0-4ccf-be46-7f089829aaa7.png)
-
-- 해당 namespace에 기존 서비스들을 재배포한다.
-
-- deploy 실행
-```Bash
-kubectl create deploy order --image x0006319acr.azurecr.io/order:latest -n istio-test-ns
-kubectl create deploy payment --image x0006319acr.azurecr.io/payment:latest -n istio-test-ns
-kubectl create deploy delivery --image x0006319acr.azurecr.io/delivery:latest -n istio-test-ns
-kubectl create deploy gateway --image x0006319acr.azurecr.io/gateway:latest -n istio-test-ns
-kubectl create deploy ordertrace --image x0006319acr.azurecr.io/ordertrace:latest -n istio-test-ns
-kubectl get all
-```
-
-- expose 하기
-```Bash
-kubectl expose deploy order --type="ClusterIP" --port=8080 -n istio-test-ns
-kubectl expose deploy payment --type="ClusterIP" --port=8080 -n istio-test-ns
-kubectl expose deploy delivery --type="ClusterIP" --port=8080 -n istio-test-ns
-kubectl expose deploy gateway --type="LoadBalancer" --port=8080 -n istio-test-ns
-kubectl expose deploy ordertrace --type="ClusterIP" --port=8080 -n istio-test-ns
-kubectl get all
-```
-
-- 서비스들이 정상적으로 배포되었고, Container가 2개씩 생성된 것을 확인한다. 
-
-![image](https://user-images.githubusercontent.com/89397401/130897459-f4d97481-bfb0-4422-957b-cab08b3fa9ef.png)
-
-- Circuit Breaker 설정을 위해 아래와 같은 Destination Rule을 생성한다.
-
-- Pending Request가 많을수록 오랫동안 쌓인 요청은 Response Time이 증가하게 되므로, 적절한 대기 쓰레드 풀을 적용하기 위해 connection pool을 설정했다.
-```yaml
-  apiVersion: networking.istio.io/v1alpha3
-  kind: DestinationRule
-  metadata:
-    name: dr-httpbin
-    namespace: istio-test-ns
-  spec:
-    host: gateway
-    trafficPolicy:
-      connectionPool:
-        http:
-          http1MaxPendingRequests: 1
-          maxRequestsPerConnection: 1
-```
-
-- 설정된 Destinationrule을 확인한다. 
-
-![image](https://user-images.githubusercontent.com/89397401/130916203-069469c2-248b-49a5-a23c-eedb442e3373.png)
-
-
-- siege 를 활용하여 User가 2명인 상황에 대해서 요청을 보낸다. (설정값 c2)
-  - siege 는 같은 namespace 에 생성하고, 해당 pod 안에 들어가서 siege 요청을 실행한다.
-```
-kubectl exec -it (siege POD 이름) -c siege -n istio-test-ns -- /bin/bash
-
-siege -c2 -t30S -v --content-type "application/json" 'http://20.200.225.249:8080/orders POST {"productId": 1, "qty":3, "paymentTyp": "cash", "cost": 1000, "productName": "Coffee"}'
-```
-
-- 최종결과 확인
-![image](https://user-images.githubusercontent.com/89397401/130823691-3df705c8-b964-4175-80c2-8970f4be57da.png)
-
-- 운영시스템은 죽지 않고 지속적으로 Circuit Breaker 에 의하여 적절히 회로가 열림과 닫힘이 벌어지면서 자원을 보호하고 있음을 보여줌. 
-- 약 84%정도 정상적으로 처리되었음.
-
-
 ## Zero-Downtime deploy (Readiness Probe)
 
 - 먼저 무정지 재배포가 100% 되는 것인지 확인하기 위해서 Autoscaler 이나 CB 설정을 제거함
@@ -990,6 +913,36 @@ kubectl describe po delivery
 **error사항이 없이 service 재기동하여, CrashLoopBackOff pod를 내리며 신규 pod 생성**
 ![image](https://user-images.githubusercontent.com/86760678/132298201-dc31ddc2-9d3e-4250-9a0e-5328083e3198.png)
 
+## Circuit Breaker
 
+FeignClient + Hystrix 옵션을 사용하여 구현함.
+예약 이후 결제 진행 시 연결을 RESTful Request/Response 로 연동하여 구현이 되어있고, 예약 요청이 과도할 경우 Circuit Breaker 를 통하여 장애격리 처리
+Hystrix 설정 : 요청처리 쓰레드에서 처리시간이 610 밀리가 넘어서기 시작하여 어느정도 유지되면 Circuit Breaker 회로가 닫히도록 (Fast Fail처리, 차단) 설정
+
+- order 서비스의 application.yml 설정
+
+![image](https://user-images.githubusercontent.com/86760678/132308200-e4d94bab-bded-4187-bb1d-9a543e885fb7.png)
+
+
+- Payment 서비스의 Payment.java설정 : 임의로 Random Delay 발생 시킴
+
+![image](https://user-images.githubusercontent.com/86760678/132315307-79ecfc4f-0fcd-4058-bf0a-b512f934d340.png)
+
+
+
+siege을 통한 동시사용자 50명이 30초 동안 부하 발생
+
+```
+ siege -c50 -t30S -r10 -v --content-type "application/json" 'http://20.200.224.94:8080/orders POST { "productId": 1, "qty": 1, "paymentType": "cash", "cost": 1000, "productName": "Coffee"}'
+```
+
+결과 확인
+
+
+![image](https://user-images.githubusercontent.com/86760678/132314665-ee9628ea-009d-421a-90d2-2e68ffde3997.png)
+
+
+Order 시스템은 Down 되지 않고, 지속적으로 Circuit Breaker에 의하여 적절히 회로가 열림과 닫힘이 벌어지면서 자원을 보호하고 있음을 보여줌.
+약 97.9%정도 정상적으로 서비스 처리를 수행함.
 
 
